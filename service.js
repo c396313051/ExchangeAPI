@@ -54,6 +54,7 @@ exports.register = (req, res) => {
       let data = {
         account: param.account,
         password: param.password,
+        name: param.account,
         sex: 'm',
         hobby: 'unset'
       }
@@ -81,8 +82,8 @@ exports.getInfo = (req,res) => {
 
 exports.editInfo = (req,res) => {
   let info = req.body
-  let changeInfo = 'update user set sex=?,hobby=? where account = ?'
-  let data = [info.sex,info.hobby,info.account]
+  let changeInfo = 'update user set name=?,sex=?,hobby=? where account = ?'
+  let data = [info.name,info.sex,info.hobby,info.account]
   db.base(changeInfo,data,(result) => {
       console.log(result)
       if (result.affectedRows === 1) {
