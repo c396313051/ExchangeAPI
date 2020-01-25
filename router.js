@@ -12,5 +12,10 @@ router.post('/register', service.register)
 router.get('/user/:account', service.getInfo)
 // 编辑个人信息
 router.put('/user/:account', service.editInfo)
-
+// 获取交流区帖子
+router.get('/talk', service.getTalk)
+// 获取指定类别的帖子
+router.get('/talk/:classFlag', service.getTalkByClass)
+// 修改指定帖子点赞状态
+router.put('/talk/good/:postID', service.changeGood)
 module.exports = router
