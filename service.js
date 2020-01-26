@@ -56,7 +56,8 @@ exports.register = (req, res) => {
         password: param.password,
         name: param.account,
         sex: 'm',
-        hobby: 'unset'
+        hobby: 'unset',
+        goodPosts: ''
       }
 
       db.base(addUser, data, (result) => {
@@ -114,25 +115,47 @@ exports.getTalkByClass = (req, res) => {
 }
 
 exports.changeGood = (req, res) => {
-  let postID = req.params.postID
-  let getPostGood = 'select * from talk where postID=?'
-  db.base(getPostGood, postID, (result) => {
-    console.log(result)
-    let changeInfo = 'update talk set isGood=? where postID = ?'
-    if (result[0].isGood === 1) {
-      let data = [0,postID]
-      db.base(changeInfo, data, (result) => {
-        console.log(result)
+  let putList = req.body
+  console.log('putList', putList)
+  // 先找出对应账户的点赞列表
+  let getUserGoodPosts = 'select goodPosts from user where account = ?'
+  let data = [putList.account]
+  db.base(getUserGoodPosts, data, (result) => {
+    console.log(result[0])
+    // 字符串转数组
+    let goodPostsArray = result[0].goodPosts == '' ? [] : result[0].goodPosts.split(',')
+    console.log(goodPostsArray)
+    // 点击的帖子是否已包含在点赞贴数组中
+    let isInclude = goodPostsArray.some((i) => {
+      return i === putList.postID
+    })
+    console.log('isInclude', isInclude)
+    if (isInclude === true) {
+      // 若存在，将其剔除
+      goodPostsArray.forEach((item, index) => {
+        if (item === putList.postID) {
+          goodPostsArray.splice(index, 1)
+        }
+      });
+      let changeGoodPosts = 'update user set goodPosts=? where account = ?'
+      let goodPostsString = goodPostsArray.join(',')
+      let goodPostData = [goodPostsString, putList.account]
+      db.base(changeGoodPosts, goodPostData, (result) => {
         if (result.affectedRows === 1) {
           res.json({ status: 1 })
         } else {
           res.json({ status: 0 })
         }
       })
+      // console.log('Array', goodPostsArray)
     } else {
-      let data = [1,postID]
-      db.base(changeInfo, data, (result) => {
-        console.log(result)
+      // 若不存在,将其加入点赞帖子数组中
+      goodPostsArray.push(putList.postID)
+      let changeGoodPosts2 = 'update user set goodPosts=? where account = ?'
+      let goodPostsString2 = goodPostsArray.join(',')
+      let goodPostData2 = [goodPostsString2, putList.account]
+      console.log('Array', goodPostsString2)
+      db.base(changeGoodPosts2, goodPostData2, (result) => {
         if (result.affectedRows === 1) {
           res.json({ status: 1 })
         } else {
@@ -140,5 +163,6 @@ exports.changeGood = (req, res) => {
         }
       })
     }
+    // res.json({result: result})
   })
 }

@@ -17,5 +17,5 @@ router.get('/talk', service.getTalk)
 // 获取指定类别的帖子
 router.get('/talk/:classFlag', service.getTalkByClass)
 // 修改指定帖子点赞状态
-router.put('/talk/good/:postID', service.changeGood)
+router.put('/talk/good/:account', service.changeGood)
 module.exports = router
