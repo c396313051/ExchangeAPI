@@ -54,7 +54,9 @@ exports.register = (req, res) => {
       let data = {
         account: param.account,
         password: param.password,
+        isMaster: 0,
         name: param.account,
+        shortcut: '',
         sex: 'm',
         hobby: 'unset',
         goodPosts: ''
@@ -96,7 +98,7 @@ exports.editInfo = (req, res) => {
 }
 
 exports.getTalk = (req, res) => {
-  let getTalkInfo = 'select * from talk'
+  let getTalkInfo = 'select * from talk order by time desc'
   let data = null
   db.base(getTalkInfo, data, (result) => {
     // console.log(result)
@@ -106,7 +108,7 @@ exports.getTalk = (req, res) => {
 
 exports.getTalkByClass = (req, res) => {
   let classFlag = req.params.classFlag
-  let getTalkInfo = 'select * from talk where classFlag=?'
+  let getTalkInfo = 'select * from talk where classFlag=? order by time desc'
   let data = [classFlag]
   db.base(getTalkInfo, data, (result) => {
     // console.log(result)
@@ -165,4 +167,95 @@ exports.changeGood = (req, res) => {
     }
     // res.json({result: result})
   })
+}
+
+exports.getUserGood = (req, res) => {
+  let account = req.params.account
+  let getGoodPosts = 'select goodPosts from user where account = ?'
+  let data = [account]
+  db.base(getGoodPosts, data, (result) => {
+    console.log(result[0])
+    res.json(result[0])
+  })
+}
+
+exports.getComments = (req, res) => {
+  let postID = req.params.postID
+  let comments = 'select * from postComments where postID = ?'
+  let data = [postID]
+  db.base(comments, data, (result) => {
+    console.log(result)
+    res.json(result)
+  })
+}
+
+exports.setComments = (req, res) => {
+  let info = req.body
+  let addComments = 'insert into postComments set ?'
+  let data = {
+    name: info.name,
+    shortcut: info.shortcut,
+    content: info.content,
+    postID: info.postID,
+    time: info.time
+  }
+  db.base(addComments, data, (result) => {
+    console.log(result)
+    if (result.affectedRows === 1) {
+      res.json({ status: 1 })
+    } else {
+      res.json({ status: 0 })
+    }
+  })
+}
+
+exports.setPost = (req, res) => {
+  let info = req.body
+  let addPost = 'insert into talk set ?'
+  let classText = ''
+  switch (info.classFlag) {
+    case '0': classText = '模型'; break;
+    case '1': classText = '书籍'; break;
+    case '2': classText = '数码'; break;
+    case '3': classText = '租赁'; break;
+    default: classText = '模型';
+  }
+  let data = {
+    name: info.name,
+    shortcut: info.shortcut,
+    content: info.content,
+    postID: info.postID,
+    time: info.time,
+    isGood: 0,
+    classFlag: info.classFlag,
+    class: classText
+  }
+  db.base(addPost, data, (result) => {
+    console.log(result)
+    if (result.affectedRows === 1) {
+      res.json({ status: 1 })
+    } else {
+      res.json({ status: 0 })
+    }
+  })
+}
+
+exports.getToken = async(req, res) => {
+  let qiniu = require('qiniu')
+  const accessKey = 'eu_-rIX53lVGdStxhQAE0VBpM3-rUtQzb1PHYW_N';
+  const secretKey = 'cKIOLZRY-vj611Honc63ILn2ZI-_5LRv7aYXnCmc';
+  const bucket = 'exchange-store';
+
+  let mac = new qiniu.auth.digest.Mac(accessKey, secretKey)
+  let options = {
+    scope: bucket,
+    expires: 3600*24
+  }
+  let putPolicy = new qiniu.rs.PutPolicy(options)
+  let uploadToken = await putPolicy.uploadToken(mac)
+  if (uploadToken) {
+    res.json(uploadToken)
+  } else {
+    res.json({status: 0})
+  }
 }

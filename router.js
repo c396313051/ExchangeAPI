@@ -18,4 +18,15 @@ router.get('/talk', service.getTalk)
 router.get('/talk/:classFlag', service.getTalkByClass)
 // 修改指定帖子点赞状态
 router.put('/talk/good/:account', service.changeGood)
+// 获取指定用户点赞帖子
+router.get('/talk/good/:account', service.getUserGood)
+// 获取指定帖子评论
+router.get('/talk/comments/:postID', service.getComments)
+// 为指定帖子写评论
+router.put('/talk/comments/:postID', service.setComments)
+// 发布帖子
+router.post('/talk/post', service.setPost)
+// 获取七牛云uploadTaken
+router.post('/token', service.getToken)
+
 module.exports = router
