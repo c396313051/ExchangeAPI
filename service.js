@@ -228,6 +228,7 @@ exports.setPost = (req, res) => {
     time: info.time,
     isGood: 0,
     classFlag: info.classFlag,
+    pic: info.pic,
     class: classText
   }
   db.base(addPost, data, (result) => {
@@ -240,7 +241,7 @@ exports.setPost = (req, res) => {
   })
 }
 
-exports.getToken = async(req, res) => {
+exports.getToken = async (req, res) => {
   let qiniu = require('qiniu')
   const accessKey = 'eu_-rIX53lVGdStxhQAE0VBpM3-rUtQzb1PHYW_N';
   const secretKey = 'cKIOLZRY-vj611Honc63ILn2ZI-_5LRv7aYXnCmc';
@@ -249,13 +250,130 @@ exports.getToken = async(req, res) => {
   let mac = new qiniu.auth.digest.Mac(accessKey, secretKey)
   let options = {
     scope: bucket,
-    expires: 3600*24
+    expires: 3600 * 24
   }
   let putPolicy = new qiniu.rs.PutPolicy(options)
   let uploadToken = await putPolicy.uploadToken(mac)
   if (uploadToken) {
     res.json(uploadToken)
   } else {
-    res.json({status: 0})
+    res.json({ status: 0 })
   }
+}
+
+exports.getItem = (req, res) => {
+  let num = req.query.num
+  let type = req.query.type
+  let keywords = req.query.keywords
+  if (type == 9) {
+    let getItemList = `select * from item where name like ? order by likeCount desc, uuid LIMIT ${num}`
+    let data = ["%" + keywords + "%"]
+    console.log('-----', req.query)
+    db.base(getItemList, data, (result) => {
+      // console.log(result)
+      res.json({ itemList: result })
+    })
+  } else {
+    let getItemList = `select * from item where type=? and name like ? order by likeCount desc, uuid LIMIT ${num}`
+    let data = [type, "%" + keywords + "%"]
+    console.log('-----', req.query)
+    db.base(getItemList, data, (result) => {
+      // console.log(result)
+      res.json({ itemList: result })
+    })
+  }
+
+}
+
+exports.addItem = (req, res) => {
+  console.log(req.body)
+  let param = req.body
+  let addItemSql = 'insert into item set ?'
+  let data = {
+    name: param.name,
+    img: param.img,
+    wish: param.wish,
+    type: param.type,
+    quality: param.quality,
+    proPlace: param.proPlace,
+    bland: param.bland,
+    postage: param.postage,
+    commitment: param.commitment,
+    likeCount: 0,
+    uuid: param.uuid,
+    outer: param.outer
+  }
+
+  db.base(addItemSql, data, (result) => {
+    if (result.affectedRows === 1) {
+      res.json({ status: 1 })
+    } else {
+      res.json({ status: 0 })
+    }
+  })
+}
+
+exports.addStar = (req, res) => {
+  let putList = req.body
+  console.log('putList', putList)
+  // 先找出对应账户的点赞列表
+  let getUserStar = 'select star from user where account = ?'
+  let data = [putList.account]
+  db.base(getUserStar, data, (result) => {
+    console.log(result[0])
+    // 字符串转数组
+    let goodPostsArray = result[0].star == '' ? [] : result[0].star.split(',')
+    console.log(goodPostsArray)
+    // 点击的帖子是否已包含在点赞贴数组中
+    let isInclude = goodPostsArray.some((i) => {
+      return i === putList.starUuid
+    })
+    console.log('isInclude', isInclude)
+    if (isInclude === true) {
+      // 若存在，将其剔除
+      goodPostsArray.forEach((item, index) => {
+        if (item === putList.starUuid) {
+          goodPostsArray.splice(index, 1)
+        }
+      });
+      let changeGoodPosts = 'update user set star=? where account = ?'
+      let goodPostsString = goodPostsArray.join(',')
+      let goodPostData = [goodPostsString, putList.account]
+      db.base(changeGoodPosts, goodPostData, (result) => {
+        if (result.affectedRows === 1) {
+          res.json({ status: 1 })
+        } else {
+          res.json({ status: 0 })
+        }
+      })
+      // console.log('Array', goodPostsArray)
+    } else {
+      // 若不存在,将其加入点赞帖子数组中
+      goodPostsArray.push(putList.starUuid)
+      let changeGoodPosts2 = 'update user set star=? where account = ?'
+      let goodPostsString2 = goodPostsArray.join(',')
+      let goodPostData2 = [goodPostsString2, putList.account]
+      console.log('Array', goodPostsString2)
+      db.base(changeGoodPosts2, goodPostData2, (result) => {
+        if (result.affectedRows === 1) {
+          res.json({ status: 1 })
+        } else {
+          res.json({ status: 0 })
+        }
+      })
+    }
+    // res.json({result: result})
+  })
+}
+
+exports.getStar = (req, res) => {
+  let account = req.params.account
+  console.log('account', account)
+  // 先找出对应账户的点赞列表
+  let getUserStar = 'select star from user where account = ?'
+  let data = [account]
+  db.base(getUserStar, data, (result) => {
+    console.log(result[0])
+    res.json(result[0])
+  })
 }

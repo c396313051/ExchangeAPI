@@ -28,5 +28,13 @@ router.put('/talk/comments/:postID', service.setComments)
 router.post('/talk/post', service.setPost)
 // 获取七牛云uploadTaken
 router.post('/token', service.getToken)
+// 获取商品列表
+router.get('/item?:params', service.getItem)
+// 发布换物信息
+router.post('/item', service.addItem)
+// 将物品加入收藏
+router.put('/star/:account', service.addStar)
+// 获取用户收藏夹
+router.get('/star/:account', service.getStar)
 
 module.exports = router
